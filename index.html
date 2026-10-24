@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Beginner's Guide to PHP Sessions</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav>
+        <a href="#">Carson Hunter</a> &middot; CYBER 210 Tutorial Blog
+    </nav>
+    <header>
+        <h1>Remembering Your Users: A Beginner&rsquo;s Guide to PHP Sessions</h1>
+        <p class="byline">By Carson Hunter &middot; October 2026</p>
+    </header>
+    <aside class="toc">
+        <strong>Contents</strong>
+        <ol><li><a href="#introduction">Introduction</a></li><li><a href="#php-in-60-seconds">PHP in 60 Seconds</a></li><li><a href="#starting-a-session">Starting a Session</a></li><li><a href="#logging-a-user-in">Logging a User In</a></li><li><a href="#protecting-a-page">Protecting a Page</a></li><li><a href="#logging-out">Logging Out</a></li><li><a href="#security-tips-and-warnings">Security Tips and Warnings</a></li><li><a href="#additional-resources">Additional Resources</a></li></ol>
+    </aside>
+    <article>
+<h2 id="introduction">Introduction</h2>
+<p>Setting up sessions in PHP is a very important skill for secure web development. You may have heard about PHP, server sessions, and their importance, but we’re going to dive in and really explain why and how we can write code to use them.</p>
+<p>Websites are often built on the simple backbone of the browser sending HTTP requests and the server responding with HTML. HTTP, and by extension HTTPS, is <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview">stateless</a>. This means that servers don’t remember a visitor between requests, even ones seconds apart. PHP uses sessions to resolve this. The server stores the user’s data, and the browser holds a small <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies">cookie</a> (named PHPSESSID) containing a session ID. On each request, the browser sends that cookie back, and the server uses the ID to find that user’s data.</p>
+<p><a href="https://www.php.net/manual/en/intro-whatis.php">PHP</a> is a server-side language, used to run code on the server so that the user only sees the resulting HTML and not the PHP code itself. This is different from JavaScript code, which runs in the browser and can be seen by anyone with View Source. Sessions can be used across different languages, but we’ll demonstrate how sessions can remember information about a user between page loads in PHP. Without sessions, every time a page loads, the server acts as if it’s the first time you’ve ever visited the page. Sessions allow a page to remember your login status, your role or permissions, your shopping cart, and your progress through a multi-step form. Sessions should NOT store passwords or large pieces of data. Passwords are already verified at login, so storing them in a session only creates risk.</p>
+<p>Let’s show how this is done by practicing writing PHP with a real-life example that will create a session to maintain the login status of a user!</p>
+<h2 id="php-in-60-seconds">PHP in 60 Seconds</h2>
+<p>PHP code always sits between the opening and closing tags <code>&lt;?php</code> and <code>?&gt;</code>. Anything inside these tags runs on the server. This code itself isn’t visible to the browser; only the HTML that it produces is. Every variable starts with <code>$</code>, like <code>$username</code>. It’s just like creating a variable in Python with <code>username = 'kyle123'</code>; the most visible difference is the <code>$</code>. Also, unlike in Python, every PHP statement ends with a semicolon (<code>;</code>). <a href="https://www.php.net/manual/en/language.variables.superglobals.php">Superglobals</a>, which are vital to this tutorial, are built-in arrays that PHP fills in automatically so that you can use them anywhere in your code. <code>$_POST</code> and <code>$_SESSION</code> are two examples. The <code>$_POST</code> superglobal contains the data a form sent using the POST method. The <code>$_SESSION</code> superglobal contains the current user’s session data, and you can add your own values to it. With superglobals, you use square brackets to access a specific value in the array, for example, <code>$_POST['username']</code>.</p>
+<p>Here’s what all of this looks like together:</p>
+<pre><code>&lt;?php
+$username = $_POST[&#x27;username&#x27;]; // get the name typed into the login form
+$_SESSION[&#x27;username&#x27;] = $username; // remember it for later pages
+echo &quot;Hello, &quot; . $username; // the . joins text together
+?&gt;</code></pre>
+<p>For <code>$_SESSION</code> to work, the page must first call <code>session_start()</code>, which is exactly where we’re headed next.</p>
+<h2 id="starting-a-session">Starting a Session</h2>
+<p>Every page that uses sessions begins by calling the <a href="https://www.php.net/manual/en/function.session-start.php"><code>session_start()</code></a> function. On a first visit, <code>session_start()</code> creates a new session and sends the <code>PHPSESSID</code> cookie to the browser. After that, the browser sends the same cookie back with every request, and <code>session_start()</code> uses it to load the session variables that were saved earlier back into <code>$_SESSION</code>. That’s the moment the server actually “remembers” you.</p>
+<p>There’s one catch: <code>session_start()</code> must be called before any HTML output, even a stray space or blank line before the <code>&lt;?php</code> tag. The cookie travels in the HTTP headers, and headers have to be sent before the page content. If you call it too late, PHP shows a “headers already sent” warning, and the session won’t start. You’ll also need to call it on every page that uses <code>$_SESSION</code>, not just the login page; otherwise, that page can’t see the session data.</p>
+<p>Here’s how the top of our login file begins:</p>
+<pre><code>&lt;?php
+// Must be the very first thing in the file, before any HTML output.
+session_start();</code></pre>
+<h2 id="logging-a-user-in">Logging a User In</h2>
+<p>First, we read what the user typed into the login form:</p>
+<pre><code>$username = $_POST[&#x27;username&#x27;] ?? &#x27;&#x27;;
+$password = $_POST[&#x27;password&#x27;] ?? &#x27;&#x27;;</code></pre>
+<p>The <code>$_POST</code> superglobal holds the username and password the user typed in, which the form sent using the POST method. We store those values in variables to use in the rest of the code. The <code>?? ''</code> tells PHP to use an empty string if the user didn’t enter anything for either the username or password.</p>
+<p>Then, we look up the user in the database:</p>
+<pre><code>$stmt = $conn-&gt;prepare(&quot;SELECT id, password FROM user WHERE username = ?&quot;);
+$stmt-&gt;bind_param(&quot;s&quot;, $username);
+$stmt-&gt;execute();
+$user = $stmt-&gt;get_result()-&gt;fetch_assoc(); // null if no user was found</code></pre>
+<p>We use a <a href="https://www.php.net/manual/en/mysqli.quickstart.prepared-statements.php">prepared statement</a> to write a SQL query that looks up the user with that username and fetches their stored password hash. The prepared statement separates the SQL command from the user input. The <code>?</code> is a placeholder, and <code>bind_param()</code> sends the username to the database separately as plain data, so even if someone types SQL code into the username box, it’s never run as a command. This prevents <a href="https://owasp.org/www-community/attacks/SQL_Injection">SQL injection</a>, an attack where someone types SQL code into a form to trick the database into running it.</p>
+<p>Next, we check the password:</p>
+<pre><code>if (!$user || !password_verify($password, $user[&#x27;password&#x27;])) {
+    $_SESSION[&#x27;login_error&#x27;] = &quot;Invalid username or password&quot;;
+    header(&quot;Location: ../views/login.php&quot;);
+    exit;
+}</code></pre>
+<p>We first check whether a user was found, and then we use <a href="https://www.php.net/manual/en/function.password-verify.php"><code>password_verify()</code></a> to compare the password the user entered with the hash (a scrambled version of the password that can’t be reversed) stored in the database for that username. The double pipes <code>||</code> are the “or” operator in PHP, so login fails if the username doesn’t exist or the password isn’t correct. In either case, an error message is stored in <code>$_SESSION['login_error']</code> so the login page can display it after the redirect. The <code>header()</code> function then sends the user back to the login page, and <code>exit</code> ends the script. The error message is also generic, so malicious users can’t use a more informative message to enumerate accounts (figure out which usernames exist).</p>
+<p>If the login succeeds, we give the user a new session ID and remember who they are:</p>
+<pre><code>session_regenerate_id(true);
+$_SESSION[&#x27;user_id&#x27;] = $user[&#x27;id&#x27;];
+$_SESSION[&#x27;username&#x27;] = $username;
+header(&quot;Location: ../index.php&quot;);
+exit;</code></pre>
+<p>Here, the <a href="https://www.php.net/manual/en/function.session-regenerate-id.php"><code>session_regenerate_id()</code></a> function gives the user a brand-new session ID, and the <code>true</code> argument deletes the old session data. This protects against session fixation, an attack where someone plants a session ID they already know in the victim’s browser before login. Once the user logs in, that planted ID becomes useless. Next, we save the user’s information in <code>$_SESSION</code>. We store the user’s ID, not their password. The password was already checked, so there’s no reason to keep it, and leaving it in the session data on the server would expose it if that data ever leaked. Finally, the logged-in user is redirected to <code>index.php</code>, and the script ends.</p>
+<h2 id="protecting-a-page">Protecting a Page</h2>
+<pre><code>&lt;?php
+session_start();
+if (!isset($_SESSION[&#x27;user_id&#x27;])) {
+    header(&quot;Location: views/login.php&quot;);
+    exit;
+}
+?&gt;</code></pre>
+<p>The code above goes at the top of any page only logged-in users should see. The <code>session_start()</code> function loads the session so that the page can use the session variables. Then, <code>isset()</code> checks whether a <code>user_id</code> is stored in the session (the <code>!</code> means “not”). If there isn’t one, the visitor never logged in, so <code>header()</code> redirects them back to the login page. Don’t forget the <code>exit</code> after the redirect: <code>header()</code> only tells the browser to go somewhere else, and without <code>exit</code>, PHP keeps running and still sends the rest of the protected page.</p>
+<h2 id="logging-out">Logging Out</h2>
+<pre><code>&lt;?php
+session_start();
+session_unset();
+session_destroy();
+setcookie(session_name(), &#x27;&#x27;, time() - 3600, &#x27;/&#x27;);
+header(&quot;Location: ../views/login.php&quot;);
+exit;</code></pre>
+<p>To log a user out, we use a few more session functions. We’ve already talked about <code>session_start()</code>, which we still need here because you have to open a session before you can destroy it. Next, <code>session_unset()</code> clears the variables saved in the <code>$_SESSION</code> superglobal array, and <code>session_destroy()</code> deletes the session data stored on the server. The <code>setcookie()</code> function sets a cookie’s expiration time; setting it to a time in the past tells the browser to delete the <code>PHPSESSID</code> cookie. Finally, <code>header()</code> sends the user back to the login page.</p>
+<h2 id="security-tips-and-warnings">Security Tips and Warnings</h2>
+<p>Security has come up at almost every step, so here’s a quick recap of the habits that keep sessions safe:</p>
+<p>Regenerate the session ID at login. <code>session_regenerate_id(true)</code> gives the user a fresh ID, which blocks session fixation.</p>
+<p>Use prepared statements. Sending user input to the database as plain data prevents SQL injection.</p>
+<p>Keep error messages generic. “Invalid username or password” stops attackers from enumerating which accounts exist.</p>
+<p>Never store passwords in the session. Store the user’s ID instead, since the password has already been checked.</p>
+<p>Always <code>exit</code> after a redirect, so a protected page is never sent to someone who isn’t logged in.</p>
+<p>Fully log users out with <code>session_unset()</code>, <code>session_destroy()</code>, and an expired cookie.</p>
+<p>One more tip: PHP lets you set security flags on the session cookie. <code>HttpOnly</code> blocks JavaScript from reading it, <code>Secure</code> sends it only over HTTPS, and <code>SameSite</code> limits when it’s sent to other sites. You can turn these on with <code>session_set_cookie_params()</code> before calling <code>session_start()</code>.</p>
+<h2 id="additional-resources">Additional Resources</h2>
+<p><a href="https://www.php.net/manual/en/book.session.php"><u>PHP Manual: Sessions</u></a>: The official PHP documentation for sessions, with a page for every session function used in this tutorial (and many more). It’s best used as a reference once you understand the basics.</p>
+<p><a href="https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"><u>OWASP Session Management Cheat Sheet</u></a>: A guide to the best security practices for preventing session breaches, from OWASP, a nonprofit focused on web application security. It goes deeper into session fixation, cookie flags, and session timeouts, and it’s worth reading before building anything real.</p>
+<p><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies"><u>MDN: Using HTTP Cookies</u></a>: Mozilla’s beginner-friendly explanation of how cookies work, including the HttpOnly, Secure, and SameSite attributes. It’s helpful for understanding what the PHPSESSID cookie is actually doing.</p>
+<p><a href="https://www.w3schools.com/php/php_sessions.asp"><u>W3Schools: PHP Sessions</u></a>: Short, simple examples of starting, changing, and destroying sessions. It’s great for beginners, though it skips most of the security practices covered here.</p>
+<p><a href="https://azure.microsoft.com/en-us/resources/cloud-computing-dictionary/what-is-sql-database"><u>Microsoft Azure: What Is a SQL Database?</u></a>: An introduction to SQL databases and how they store data. It’s useful background if you’re new to the database side of the login code.</p>
+<p><a href="https://learn.microsoft.com/en-us/sql/relational-databases/security/sql-injection?view=sql-server-ver17"><u>Microsoft Learn: SQL Injection</u></a>: Microsoft’s explanation of how SQL injection attacks work and how to defend against them, including parameterized queries, the same idea as our prepared statements. Its examples use SQL Server, but the concepts apply to MySQL too.</p>
+<p><a href="https://stytch.com/blog/what-is-an-enumeration-attack/"><u>Stytch: What Is an Enumeration Attack?</u></a>: A plain-English overview of enumeration attacks, including how attackers use different error messages to discover valid usernames. It shows exactly why our generic error message matters.</p>
+    </article>
+    <footer>Written for BYU IT&amp;C 210A &middot; Carson Hunter</footer>
+</body>
+</html>

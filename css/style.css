@@ -1,0 +1,115 @@
+/* style.css: based on my IT&C 210 task list stylesheet, extended for a blog post */
+
+:root {
+	/* Same theme colors as my task list */
+	--primary: #7A9E9F;
+	--text: #4f6367;
+	--neutral: #eef5db;
+	--contrast: #fe5f55;
+	--another: #b8d8d8;
+	--code-bg: #2f3b3e;
+	--code-text: #eef5db;
+
+	background-color: var(--neutral);
+	font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+body {
+	max-width: 55rem;
+	margin: 0.5em auto;
+	border: 1px solid black;
+	border-radius: 5px;
+	padding: 0.75rem;
+	background-color: var(--primary);
+	line-height: 1.6;
+}
+
+nav {
+	color: var(--neutral);
+	background-color: var(--contrast);
+	padding: 0.75rem;
+	border-radius: 5px;
+}
+
+nav a {
+	color: white;
+	font-weight: bold;
+	text-decoration: none;
+}
+
+h1, h2 {
+	font-family: Georgia, 'Times New Roman', Times, serif;
+	font-weight: bolder;
+	color: var(--text);
+}
+
+h1 { margin-bottom: 0.2em; }
+
+h2 {
+	margin-top: 1.8em;
+	padding-bottom: 0.2em;
+	border-bottom: 2px solid var(--text);
+}
+
+.byline {
+	margin-top: 0;
+	color: var(--neutral);
+	font-style: italic;
+}
+
+/* Main reading area: a light card on the teal background, like the task list items */
+article, .toc {
+	background-color: var(--neutral);
+	color: #26302f;
+	border-radius: 5px;
+	padding: 0.5rem 1.5rem 1rem;
+}
+
+.toc {
+	margin-bottom: 1rem;
+	padding: 0.75rem 1.5rem;
+	background-color: var(--another);
+}
+
+.toc ol { margin: 0.4em 0 0; }
+
+a { color: #c0392b; }
+a:hover { color: var(--contrast); }
+
+/* Inline code like $_SESSION */
+code {
+	font-family: Consolas, 'Courier New', monospace;
+	background-color: var(--another);
+	padding: 0.1em 0.3em;
+	border-radius: 3px;
+	font-size: 0.92em;
+}
+
+/* Code blocks */
+pre {
+	background-color: var(--code-bg);
+	color: var(--code-text);
+	padding: 1em;
+	border-radius: 5px;
+	border-left: 5px solid var(--contrast);
+	overflow-x: auto;
+	line-height: 1.45;
+}
+
+pre code {
+	background: none;
+	padding: 0;
+	color: inherit;
+	font-size: 0.9em;
+}
+
+figure { margin: 1.5em 0; text-align: center; }
+figure img { max-width: 100%; border: 1px solid var(--text); border-radius: 5px; }
+figcaption { font-size: 0.9em; font-style: italic; color: var(--text); margin-top: 0.4em; }
+
+footer {
+	margin-top: 1rem;
+	text-align: center;
+	color: var(--neutral);
+	font-size: 0.85em;
+}
